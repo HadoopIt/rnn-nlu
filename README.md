@@ -5,7 +5,7 @@ Tensorflow implementation of attention-based LSTM models for sequence classifica
 
 **Setup**
 
-* Tensorflow r0.9 (https://www.tensorflow.org/versions/r0.9/get_started/index.html)
+* Tensorflow, version >= r0.9 (https://www.tensorflow.org/versions/r0.9/get_started/index.html)
 
 **Usage**:
 ```bash
@@ -24,7 +24,7 @@ python run_multi-task_rnn.py --data_dir $data_dir \
 
 **Reference**
 
-* Bing Liu, Ian Lane, "Attention-Based Recurrent Neural Network Models for Joint Intent Detection and Slot Filling", (to appear) in Interspeech, 2016 (http://speech.sv.cmu.edu/publications/liu-interspeech-2016.pdf)
+* Bing Liu, Ian Lane, "Attention-Based Recurrent Neural Network Models for Joint Intent Detection and Slot Filling", (to appear) in Interspeech, 2016 (<a href="http://speech.sv.cmu.edu/publications/liu-interspeech-2016.pdf" target="_blank">PDF</a>)
 
 
 **Contact** 
