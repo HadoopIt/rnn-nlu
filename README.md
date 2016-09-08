@@ -24,7 +24,7 @@ python run_multi-task_rnn.py --data_dir $data_dir \
 
 **Reference**
 
-* Bing Liu, Ian Lane, "Attention-Based Recurrent Neural Network Models for Joint Intent Detection and Slot Filling", (to appear) in Interspeech, 2016 (<a href="http://speech.sv.cmu.edu/publications/liu-interspeech-2016.pdf" target="_blank">PDF</a>)
+* Bing Liu, Ian Lane, "Attention-Based Recurrent Neural Network Models for Joint Intent Detection and Slot Filling", Interspeech, 2016 (<a href="http://www.isca-speech.org/archive/Interspeech_2016/pdfs/1352.PDF" target="_blank">PDF</a>)
 
 
 **Contact** 
