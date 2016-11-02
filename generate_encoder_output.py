@@ -54,6 +54,7 @@ def generate_embedding_RNN_output(encoder_inputs,
       encoder_embedded_inputs = [embedding_ops.embedding_lookup(embedding, encoder_input) for encoder_input in encoder_inputs]    
       encoder_outputs, encoder_state = rnn.rnn(
           encoder_cell, encoder_embedded_inputs, sequence_length=sequence_length, dtype=dtype)
+      encoder_state = array_ops.concat(1, encoder_state)
       top_states = [array_ops.reshape(e, [-1, 1, cell.output_size])
                     for e in encoder_outputs]
       attention_states = array_ops.concat(1, top_states)
