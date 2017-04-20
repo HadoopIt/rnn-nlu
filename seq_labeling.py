@@ -41,7 +41,7 @@ def _step(time, sequence_length, min_sequence_length, max_sequence_length, zero_
 
   logit = control_flow_ops.cond(
       time < min_sequence_length, existing_logit, copy_through)
-  logit.set_shape(logit.get_shape())
+  logit.set_shape(zero_logit.get_shape())
   return logit
 
 def attention_RNN(encoder_outputs, 
