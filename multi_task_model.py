@@ -134,8 +134,6 @@ class MultiTaskModel(object):
 
     # Gradients and SGD update operation for training the model.
     params = tf.trainable_variables()
-    for i in xrange(len(params)):
-      print (params[i].name)
     if not forward_only:
       opt = tf.train.AdamOptimizer()
       if task['joint'] == 1:
