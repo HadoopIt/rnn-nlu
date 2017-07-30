@@ -82,7 +82,8 @@ def create_vocabulary(vocabulary_path, data_path, max_vocabulary_size,
             vocab[word] += 1
           else:
             vocab[word] = 1
-      vocab_list = START_VOCAB_dict['with_padding'] + sorted(vocab, key=vocab.get, reverse=True)
+      vocab_list = START_VOCAB_dict['with_padding'] + \
+                      sorted(vocab, key=vocab.get, reverse=True)
       if len(vocab_list) > max_vocabulary_size:
         vocab_list = vocab_list[:max_vocabulary_size]
       with gfile.GFile(vocabulary_path, mode="w") as vocab_file:
@@ -90,7 +91,7 @@ def create_vocabulary(vocabulary_path, data_path, max_vocabulary_size,
           vocab_file.write(w + "\n")
 
 
-def initialize_vocabulary(vocabulary_path):
+def initialize_vocab(vocabulary_path):
   """Initialize vocabulary from file.
 
   We assume the vocabulary is stored one-item-per-line, so a file:
@@ -166,7 +167,7 @@ def data_to_token_ids(data_path, target_path, vocabulary_path,
   """
   if not gfile.Exists(target_path):
     print("Tokenizing data in %s" % data_path)
-    vocab, _ = initialize_vocabulary(vocabulary_path)
+    vocab, _ = initialize_vocab(vocabulary_path)
     with gfile.GFile(data_path, mode="r") as data_file:
       with gfile.GFile(target_path, mode="w") as tokens_file:
         counter = 0
@@ -211,8 +212,14 @@ def prepare_multi_task_data(data_dir, in_vocab_size, out_vocab_size):
     out_vocab_path = os.path.join(data_dir, "out_vocab_%d.txt" % out_vocab_size)
     label_path = os.path.join(data_dir, "label.txt")
     
-    create_vocabulary(in_vocab_path, train_path + ".seq.in", in_vocab_size, tokenizer=naive_tokenizer)
-    create_vocabulary(out_vocab_path, train_path + ".seq.out", out_vocab_size, tokenizer=naive_tokenizer)
+    create_vocabulary(in_vocab_path, 
+                      train_path + ".seq.in", 
+                      in_vocab_size, 
+                      tokenizer=naive_tokenizer)
+    create_vocabulary(out_vocab_path, 
+                      train_path + ".seq.out", 
+                      out_vocab_size, 
+                      tokenizer=naive_tokenizer)
     create_label_vocab(label_path, train_path + ".label")
     
     # Create token ids for the training data.
@@ -220,29 +227,59 @@ def prepare_multi_task_data(data_dir, in_vocab_size, out_vocab_size):
     out_seq_train_ids_path = train_path + (".ids%d.seq.out" % out_vocab_size)
     label_train_ids_path = train_path + (".ids.label")
 
-    data_to_token_ids(train_path + ".seq.in", in_seq_train_ids_path, in_vocab_path, tokenizer=naive_tokenizer)
-    data_to_token_ids(train_path + ".seq.out", out_seq_train_ids_path, out_vocab_path, tokenizer=naive_tokenizer)
-    data_to_token_ids(train_path + ".label", label_train_ids_path, label_path, normalize_digits=False, use_padding=False)
+    data_to_token_ids(train_path + ".seq.in", 
+                      in_seq_train_ids_path, 
+                      in_vocab_path, 
+                      tokenizer=naive_tokenizer)
+    data_to_token_ids(train_path + ".seq.out", 
+                      out_seq_train_ids_path, 
+                      out_vocab_path, 
+                      tokenizer=naive_tokenizer)
+    data_to_token_ids(train_path + ".label", 
+                      label_train_ids_path, 
+                      label_path, 
+                      normalize_digits=False, 
+                      use_padding=False)
     
     # Create token ids for the development data.
     in_seq_dev_ids_path = dev_path + (".ids%d.seq.in" % in_vocab_size)
     out_seq_dev_ids_path = dev_path + (".ids%d.seq.out" % out_vocab_size)
     label_dev_ids_path = dev_path + (".ids.label")
 
-    data_to_token_ids(dev_path + ".seq.in", in_seq_dev_ids_path, in_vocab_path, tokenizer=naive_tokenizer)
-    data_to_token_ids(dev_path + ".seq.out", out_seq_dev_ids_path, out_vocab_path, tokenizer=naive_tokenizer)
-    data_to_token_ids(dev_path + ".label", label_dev_ids_path, label_path, normalize_digits=False, use_padding=False)
+    data_to_token_ids(dev_path + ".seq.in", 
+                      in_seq_dev_ids_path, 
+                      in_vocab_path, 
+                      tokenizer=naive_tokenizer)
+    data_to_token_ids(dev_path + ".seq.out", 
+                      out_seq_dev_ids_path, 
+                      out_vocab_path, 
+                      tokenizer=naive_tokenizer)
+    data_to_token_ids(dev_path + ".label", 
+                      label_dev_ids_path, 
+                      label_path, 
+                      normalize_digits=False, 
+                      use_padding=False)
     
     # Create token ids for the test data.
     in_seq_test_ids_path = test_path + (".ids%d.seq.in" % in_vocab_size)
     out_seq_test_ids_path = test_path + (".ids%d.seq.out" % out_vocab_size)
     label_test_ids_path = test_path + (".ids.label")
     
-    data_to_token_ids(test_path + ".seq.in", in_seq_test_ids_path, in_vocab_path, tokenizer=naive_tokenizer)
-    data_to_token_ids(test_path + ".seq.out", out_seq_test_ids_path, out_vocab_path, tokenizer=naive_tokenizer)
-    data_to_token_ids(test_path + ".label", label_test_ids_path, label_path, normalize_digits=False, use_padding=False)
+    data_to_token_ids(test_path + ".seq.in", 
+                      in_seq_test_ids_path, 
+                      in_vocab_path, 
+                      tokenizer=naive_tokenizer)
+    data_to_token_ids(test_path + ".seq.out", 
+                      out_seq_test_ids_path, 
+                      out_vocab_path, 
+                      tokenizer=naive_tokenizer)
+    data_to_token_ids(test_path + ".label", 
+                      label_test_ids_path, 
+                      label_path, 
+                      normalize_digits=False, 
+                      use_padding=False)
     
-    return (in_seq_train_ids_path, out_seq_train_ids_path, label_train_ids_path,
-          in_seq_dev_ids_path, out_seq_dev_ids_path, label_dev_ids_path,
-          in_seq_test_ids_path, out_seq_test_ids_path, label_test_ids_path,
-          in_vocab_path, out_vocab_path, label_path)
+    return [(in_seq_train_ids_path,out_seq_train_ids_path,label_train_ids_path),
+            (in_seq_dev_ids_path, out_seq_dev_ids_path, label_dev_ids_path),
+            (in_seq_test_ids_path, out_seq_test_ids_path, label_test_ids_path),
+            (in_vocab_path, out_vocab_path, label_path)]

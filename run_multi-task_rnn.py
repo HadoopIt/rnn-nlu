@@ -33,17 +33,17 @@ tf.app.flags.DEFINE_float("max_gradient_norm", 5.0,
 tf.app.flags.DEFINE_integer("batch_size", 16,
                             "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("size", 128, "Size of each model layer.")
-tf.app.flags.DEFINE_integer("word_embedding_size", 128, "Size of the word embedding")
+tf.app.flags.DEFINE_integer("word_embedding_size", 128, "word embedding size")
 tf.app.flags.DEFINE_integer("num_layers", 1, "Number of layers in the model.")
 tf.app.flags.DEFINE_integer("in_vocab_size", 10000, "max vocab Size.")
 tf.app.flags.DEFINE_integer("out_vocab_size", 10000, "max tag vocab Size.")
 tf.app.flags.DEFINE_string("data_dir", "/tmp", "Data directory")
 tf.app.flags.DEFINE_string("train_dir", "/tmp", "Training directory.")
 tf.app.flags.DEFINE_integer("max_train_data_size", 0,
-                            "Limit on the size of training data (0: no limit).")
-tf.app.flags.DEFINE_integer("steps_per_checkpoint", 300,
+                            "Limit on the size of training data (0: no limit)")
+tf.app.flags.DEFINE_integer("steps_per_checkpoint", 100,
                             "How many training steps to do per checkpoint.")
-tf.app.flags.DEFINE_integer("max_training_steps", 10000,
+tf.app.flags.DEFINE_integer("max_training_steps", 30000,
                             "Max training steps.")
 tf.app.flags.DEFINE_integer("max_test_data_size", 0,
                             "Max size of test set.")
@@ -63,7 +63,8 @@ if FLAGS.max_sequence_length == 0:
     exit()
 
 if FLAGS.task is None:
-    print ('Please indicate task to run. Available options: intent; tagging; joint')
+    print ('Please indicate task to run.' + 
+           'Available options: intent; tagging; joint')
     exit()
 
 task = dict({'intent':0, 'tagging':0, 'joint':0})
@@ -134,11 +135,11 @@ def read_data(source_path, target_path, label_path, max_size=None):
   """Read data from source and target files and put into buckets.
 
   Args:
-    source_path: path to the files with token-ids for the source input - word sequence.
-    target_path: path to the file with token-ids for the target output - tag sequence;
+    source_path: path to the files with token-ids for the word sequence.
+    target_path: path to the file with token-ids for the tag sequence;
       it must be aligned with the source file: n-th line contains the desired
       output for n-th line from the source_path.
-    label_path: path to the file with token-ids for the sequence classification label
+    label_path: path to the file with token-ids for the intent label
     max_size: maximum number of lines to read, all other will be ignored;
       if 0 or None, data files will be read completely (no limit).
 
@@ -146,15 +147,18 @@ def read_data(source_path, target_path, label_path, max_size=None):
     data_set: a list of length len(_buckets); data_set[n] contains a list of
       (source, target, label) tuple read from the provided data files that fit
       into the n-th bucket, i.e., such that len(source) < _buckets[n][0] and
-      len(target) < _buckets[n][1]; source,  target, and label are lists of token-ids.
+      len(target) < _buckets[n][1];source, target, label are lists of token-ids
   """
   data_set = [[] for _ in _buckets]
   with tf.gfile.GFile(source_path, mode="r") as source_file:
     with tf.gfile.GFile(target_path, mode="r") as target_file:
       with tf.gfile.GFile(label_path, mode="r") as label_file:
-        source, target, label = source_file.readline(), target_file.readline(), label_file.readline()
+        source = source_file.readline()
+        target = target_file.readline()
+        label = label_file.readline()
         counter = 0
-        while source and target and label and (not max_size or counter < max_size):
+        while source and target and label and (not max_size \
+                                               or counter < max_size):
           counter += 1
           if counter % 100000 == 0:
             print("  reading data line %d" % counter)
@@ -167,25 +171,45 @@ def read_data(source_path, target_path, label_path, max_size=None):
             if len(source_ids) < source_size and len(target_ids) < target_size:
               data_set[bucket_id].append([source_ids, target_ids, label_ids])
               break
-          source, target, label = source_file.readline(), target_file.readline(), label_file.readline()
+          source = source_file.readline()
+          target = target_file.readline()
+          label = label_file.readline()
   return data_set # 3 outputs in each unit: source_ids, target_ids, label_ids 
 
-def create_model(session, source_vocab_size, target_vocab_size, label_vocab_size):
+def create_model(session, 
+                 source_vocab_size, 
+                 target_vocab_size, 
+                 label_vocab_size):
   """Create model and initialize or load parameters in session."""
   with tf.variable_scope("model", reuse=None):
     model_train = multi_task_model.MultiTaskModel(
-          source_vocab_size, target_vocab_size, label_vocab_size, _buckets,
-          FLAGS.word_embedding_size, FLAGS.size, FLAGS.num_layers, FLAGS.max_gradient_norm, FLAGS.batch_size,
-          dropout_keep_prob=FLAGS.dropout_keep_prob, use_lstm=True,
+          source_vocab_size, 
+          target_vocab_size, 
+          label_vocab_size, 
+          _buckets,
+          FLAGS.word_embedding_size, 
+          FLAGS.size, FLAGS.num_layers, 
+          FLAGS.max_gradient_norm, 
+          FLAGS.batch_size,
+          dropout_keep_prob=FLAGS.dropout_keep_prob, 
+          use_lstm=True,
           forward_only=False, 
           use_attention=FLAGS.use_attention,
           bidirectional_rnn=FLAGS.bidirectional_rnn,
           task=task)
   with tf.variable_scope("model", reuse=True):
     model_test = multi_task_model.MultiTaskModel(
-          source_vocab_size, target_vocab_size, label_vocab_size, _buckets,
-          FLAGS.word_embedding_size, FLAGS.size, FLAGS.num_layers, FLAGS.max_gradient_norm, FLAGS.batch_size,
-          dropout_keep_prob=FLAGS.dropout_keep_prob, use_lstm=True,
+          source_vocab_size, 
+          target_vocab_size, 
+          label_vocab_size, 
+          _buckets,
+          FLAGS.word_embedding_size, 
+          FLAGS.size, 
+          FLAGS.num_layers, 
+          FLAGS.max_gradient_norm, 
+          FLAGS.batch_size,
+          dropout_keep_prob=FLAGS.dropout_keep_prob, 
+          use_lstm=True,
           forward_only=True, 
           use_attention=FLAGS.use_attention,
           bidirectional_rnn=FLAGS.bidirectional_rnn,
@@ -197,7 +221,7 @@ def create_model(session, source_vocab_size, target_vocab_size, label_vocab_size
     model_train.saver.restore(session, ckpt.model_checkpoint_path)
   else:
     print("Created model with fresh parameters.")
-    session.run(tf.initialize_all_variables())
+    session.run(tf.global_variables_initializer())
   return model_train, model_test
         
 def train():
@@ -208,8 +232,12 @@ def train():
   vocab_path = ''
   tag_vocab_path = ''
   label_vocab_path = ''
-  in_seq_train, out_seq_train, label_train, in_seq_dev, out_seq_dev, label_dev, in_seq_test, out_seq_test, label_test, vocab_path, tag_vocab_path, label_vocab_path = data_utils.prepare_multi_task_data(
-    FLAGS.data_dir, FLAGS.in_vocab_size, FLAGS.out_vocab_size)     
+  date_set = data_utils.prepare_multi_task_data(
+    FLAGS.data_dir, FLAGS.in_vocab_size, FLAGS.out_vocab_size)
+  in_seq_train, out_seq_train, label_train = date_set[0]
+  in_seq_dev, out_seq_dev, label_dev = date_set[1]
+  in_seq_test, out_seq_test, label_test = date_set[2]
+  vocab_path, tag_vocab_path, label_vocab_path = date_set[3]
      
   result_dir = FLAGS.train_dir + '/test_results'
   if not os.path.isdir(result_dir):
@@ -218,17 +246,27 @@ def train():
   current_taging_valid_out_file = result_dir + '/tagging.valid.hyp.txt'
   current_taging_test_out_file = result_dir + '/tagging.test.hyp.txt'
 
-  vocab, rev_vocab = data_utils.initialize_vocabulary(vocab_path)
-  tag_vocab, rev_tag_vocab = data_utils.initialize_vocabulary(tag_vocab_path)
-  label_vocab, rev_label_vocab = data_utils.initialize_vocabulary(label_vocab_path)
+  vocab, rev_vocab = data_utils.initialize_vocab(vocab_path)
+  tag_vocab, rev_tag_vocab = data_utils.initialize_vocab(tag_vocab_path)
+  label_vocab, rev_label_vocab = data_utils.initialize_vocab(label_vocab_path)
+
+  config = tf.ConfigProto(
+      gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.23),
+      #device_count = {'gpu': 2}
+  )
     
-  with tf.Session() as sess:
+  with tf.Session(config=config) as sess:
     # Create model.
     print("Max sequence length: %d." % _buckets[0][0])
     print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
     
-    model, model_test = create_model(sess, len(vocab), len(tag_vocab), len(label_vocab))
-    print ("Creating model with source_vocab_size=%d, target_vocab_size=%d, and label_vocab_size=%d." % (len(vocab), len(tag_vocab), len(label_vocab)))
+    model, model_test = create_model(sess, 
+                                     len(vocab), 
+                                     len(tag_vocab), 
+                                     len(label_vocab))
+    print ("Creating model with " + 
+           "source_vocab_size=%d, target_vocab_size=%d, label_vocab_size=%d." \
+           % (len(vocab), len(tag_vocab), len(label_vocab)))
 
     # Read data into buckets and compute their sizes.
     print ("Reading train/valid/test data (training set limit: %d)."
@@ -255,16 +293,35 @@ def train():
 
       # Get a batch and make a step.
       start_time = time.time()
-      encoder_inputs, tags, tag_weights, batch_sequence_length, labels = model.get_batch(train_set, bucket_id)
+      batch_data = model.get_batch(train_set, bucket_id)
+      encoder_inputs,tags,tag_weights,batch_sequence_length,labels = batch_data
       if task['joint'] == 1:
-        _, step_loss, tagging_logits, classification_logits = model.joint_step(sess, encoder_inputs, tags, tag_weights, labels,
-                                   batch_sequence_length, bucket_id, False)
+        step_outputs = model.joint_step(sess, 
+                                        encoder_inputs, 
+                                        tags, 
+                                        tag_weights, 
+                                        labels, 
+                                        batch_sequence_length, 
+                                        bucket_id, 
+                                        False)
+        _, step_loss, tagging_logits, class_logits = step_outputs
       elif task['tagging'] == 1:
-        _, step_loss, tagging_logits = model.tagging_step(sess, encoder_inputs, tags, tag_weights,
-                                   batch_sequence_length, bucket_id, False)
+        step_outputs = model.tagging_step(sess, 
+                                          encoder_inputs,
+                                          tags,
+                                          tag_weights,
+                                          batch_sequence_length, 
+                                          bucket_id, 
+                                          False)
+        _, step_loss, tagging_logits = step_outputs
       elif task['intent'] == 1:
-        _, step_loss, classification_logits = model.classification_step(sess, encoder_inputs, labels,
-                                   batch_sequence_length, bucket_id, False)                                   
+        step_outputs = model.classification_step(sess, 
+                                                 encoder_inputs, 
+                                                 labels,
+                                                 batch_sequence_length, 
+                                                 bucket_id, 
+                                                 False)  
+        _, step_loss, class_logits = step_outputs
 
       step_time += (time.time() - start_time) / FLAGS.steps_per_checkpoint
       loss += step_loss / FLAGS.steps_per_checkpoint
@@ -296,63 +353,95 @@ def train():
               count = 0
               for i in xrange(len(data_set[bucket_id])):
                 count += 1
-                encoder_inputs, tags, tag_weights, sequence_length, labels = model_test.get_one(
-                  data_set, bucket_id, i)
+                sample = model_test.get_one(data_set, bucket_id, i)
+                encoder_inputs,tags,tag_weights,sequence_length,labels = sample
                 tagging_logits = []
-                classification_logits = []
+                class_logits = []
                 if task['joint'] == 1:
-                  _, step_loss, tagging_logits, classification_logits = model_test.joint_step(sess, encoder_inputs, tags, tag_weights, labels,
-                                             sequence_length, bucket_id, True)
+                  step_outputs = model_test.joint_step(sess, 
+                                                       encoder_inputs, 
+                                                       tags, 
+                                                       tag_weights, 
+                                                       labels,
+                                                       sequence_length, 
+                                                       bucket_id, 
+                                                       True)
+                  _, step_loss, tagging_logits, class_logits = step_outputs
                 elif task['tagging'] == 1:
-                  _, step_loss, tagging_logits = model_test.tagging_step(sess, encoder_inputs, tags, tag_weights,
-                                             sequence_length, bucket_id, True)
+                  step_outputs = model_test.tagging_step(sess, 
+                                                         encoder_inputs, 
+                                                         tags, 
+                                                         tag_weights,
+                                                         sequence_length, 
+                                                         bucket_id, 
+                                                         True)
+                  _, step_loss, tagging_logits = step_outputs
                 elif task['intent'] == 1:
-                  _, step_loss, classification_logits = model_test.classification_step(sess, encoder_inputs, labels,
-                                             sequence_length, bucket_id, True) 
+                  step_outputs = model_test.classification_step(sess, 
+                                                                encoder_inputs, 
+                                                                labels,
+                                                                sequence_length, 
+                                                                bucket_id, 
+                                                                True) 
+                  _, step_loss, class_logits = step_outputs
                 eval_loss += step_loss / len(data_set[bucket_id])
                 hyp_label = None
                 if task['intent'] == 1:
                   ref_label_list.append(rev_label_vocab[labels[0][0]])
-                  hyp_label = np.argmax(classification_logits[0],0)
+                  hyp_label = np.argmax(class_logits[0],0)
                   hyp_label_list.append(rev_label_vocab[hyp_label])
                   if labels[0] == hyp_label:
                     correct_count += 1
                 if task['tagging'] == 1:
-                  word_list.append([rev_vocab[x[0]] for x in encoder_inputs[:sequence_length[0]]])
-                  ref_tag_list.append([rev_tag_vocab[x[0]] for x in tags[:sequence_length[0]]])
-                  hyp_tag_list.append([rev_tag_vocab[np.argmax(x)] for x in tagging_logits[:sequence_length[0]]])
+                  word_list.append([rev_vocab[x[0]] for x in \
+                                    encoder_inputs[:sequence_length[0]]])
+                  ref_tag_list.append([rev_tag_vocab[x[0]] for x in \
+                                       tags[:sequence_length[0]]])
+                  hyp_tag_list.append(
+                          [rev_tag_vocab[np.argmax(x)] for x in \
+                                         tagging_logits[:sequence_length[0]]])
 
             accuracy = float(correct_count)*100/count
             if task['intent'] == 1:
-              print("  %s accuracy: %.2f %d/%d" % (mode, accuracy, correct_count, count))
+              print("  %s accuracy: %.2f %d/%d" \
+                    % (mode, accuracy, correct_count, count))
               sys.stdout.flush()
             if task['tagging'] == 1:
               if mode == 'Eval':
                   taging_out_file = current_taging_valid_out_file
               elif mode == 'Test':
                   taging_out_file = current_taging_test_out_file
-              tagging_eval_result = conlleval(hyp_tag_list, ref_tag_list, word_list, taging_out_file)
+              tagging_eval_result = conlleval(hyp_tag_list, 
+                                              ref_tag_list, 
+                                              word_list, 
+                                              taging_out_file)
               print("  %s f1-score: %.2f" % (mode, tagging_eval_result['f1']))
               sys.stdout.flush()
             return accuracy, tagging_eval_result
             
         # valid
         valid_accuracy, valid_tagging_result = run_valid_test(dev_set, 'Eval')        
-        if task['tagging'] == 1 and valid_tagging_result['f1'] > best_valid_score:
+        if task['tagging'] == 1 \
+            and valid_tagging_result['f1'] > best_valid_score:
           best_valid_score = valid_tagging_result['f1']
           # save the best output file
-          subprocess.call(['mv', current_taging_valid_out_file, current_taging_valid_out_file + '.best_f1_%.2f' % best_valid_score])
+          subprocess.call(['mv', 
+                           current_taging_valid_out_file, 
+                           current_taging_valid_out_file + '.best_f1_%.2f' \
+                           % best_valid_score])
         # test, run test after each validation for development purpose.
         test_accuracy, test_tagging_result = run_valid_test(test_set, 'Test')        
-        if task['tagging'] == 1 and test_tagging_result['f1'] > best_test_score:
+        if task['tagging'] == 1 \
+            and test_tagging_result['f1'] > best_test_score:
           best_test_score = test_tagging_result['f1']
           # save the best output file
-          subprocess.call(['mv', current_taging_test_out_file, current_taging_test_out_file + '.best_f1_%.2f' % best_test_score])
+          subprocess.call(['mv', 
+                           current_taging_test_out_file, 
+                           current_taging_test_out_file + '.best_f1_%.2f' \
+                           % best_test_score])
           
 def main(_):
     train()
 
 if __name__ == "__main__":
   tf.app.run()
-
-
