@@ -6,7 +6,8 @@ Tensorflow implementation of attention-based LSTM models for sequence classifica
 * Updated code to work with the latest TensorFlow API: r1.2
 * Code cleanup and formatting
 * Note that this published code does not include the modeling of output label dependencies. One may add a loop function as in the rnn_decoder function in TensorFlow <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/legacy_seq2seq/python/ops/seq2seq.py#L292" target="_blank">seq2seq.py</a> example to feed emitted label embedding back to RNN state. Alternatively, sequence level optimization can be performed by adding a <a href="https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/crf" target="_blank">CRF</a> layer on top of the RNN outputs.
-* The dataset used in the paper can be found at: https://github.com/yvchen/JointSLU/tree/master/data. We used the training set in the original ATIS train/test split, which has 4978 training samples.
+* The dataset used in the paper can be found at: https://github.com/yvchen/JointSLU/tree/master/data. We used the training set in the original ATIS train/test split, which has 4978 training samples. There are 15 test samples that have multiple intent labels for an utterance. We used the more frequent label (most likely, "flight") as the true label during evaluation.  
+
 
 **Setup**
 
